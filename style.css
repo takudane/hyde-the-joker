@@ -1,0 +1,142 @@
+:root{
+  --felt:#090F1C; --felt2:#152139; --ink:#0A101D;
+  --back1:#16223B; --back2:#0F1830;
+  --gold:#D9B26A; --cpu:#A9A4E6; --good:#86CB92; --bad:#EE7B6E; --mute:#8D98AE; --txt:#ECE8DC;
+  --serif:'Cinzel','Times New Roman',Georgia,serif;
+  --font:'Zen Kaku Gothic New','Hiragino Sans','Noto Sans JP',system-ui,sans-serif;
+  --cwd:min(10.2vw,42px);                       /* 守備札（小さめ・盾形） */
+  --cwa:min(calc((100vw - 48px)/7),56px);       /* 攻撃札（大きめ・金色） */
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--felt);color:var(--txt);font-family:var(--font);touch-action:manipulation}
+body{background:radial-gradient(120% 70% at 50% 35%,var(--felt2) 0%,var(--felt) 70%) fixed}
+#app{max-width:520px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;gap:8px;padding:10px 14px calc(14px + env(safe-area-inset-bottom))}
+button{font-family:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+h1{margin:0;display:flex;align-items:center;gap:8px;font-family:var(--serif);font-size:14px;font-weight:700;letter-spacing:.1em;color:var(--gold)}
+h1 .logo{width:19px;height:auto;flex:none}
+.hr{display:flex;align-items:center;gap:8px}
+.chip{font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.1)}
+.chip.p{background:var(--gold);color:var(--ink)}
+.chip.c{background:var(--cpu);color:var(--ink)}
+.ghost{min-height:34px;padding:0 12px;border-radius:999px;border:1.5px solid rgba(255,255,255,.3);background:transparent;font-size:12px;font-weight:700}
+
+.zone{display:flex;flex-direction:column;gap:6px}
+.zinfo{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;font-size:12px;color:var(--mute)}
+.zinfo b{color:var(--txt);font-size:14px}
+.zinfo .pt{margin-left:auto;color:var(--txt);font-weight:700}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:-4px}
+.dot.cpu{background:var(--cpu)} .dot.me{background:var(--gold)}
+.cap{font-size:11px;color:var(--mute)}
+
+/* 使用済み／公開済みの一覧 */
+.trk{display:flex;justify-content:center;gap:2px}
+.trk i{font-style:normal;flex:1;max-width:32px;height:22px;border-radius:5px;background:rgba(255,255,255,.14);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.trk i.jk{color:var(--gold)}
+.trk i.u{background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25);opacity:.32;text-decoration:line-through}
+.trk i.o{box-shadow:inset 0 0 0 2px var(--bad);color:var(--bad)}
+
+.row{display:flex;justify-content:center;gap:min(2.2vw,10px)}
+.row.dfn{--cw:var(--cwd)}
+/* CPUの守備札の両端に強弱ラベル（あなたから見て左が強く、右が弱い） */
+.dwrap{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;column-gap:8px}
+.end{align-self:start;margin-top:calc(var(--cwd)*.71 - 11px);font-size:13px;font-weight:900;line-height:1;padding:5px 8px;border-radius:999px}
+.end.l{justify-self:end;background:rgba(238,123,110,.22);color:var(--bad)}
+.end.r{justify-self:start;background:rgba(141,152,174,.22);color:var(--mute)}
+.slotwrap{display:flex;flex-direction:column;align-items:center;gap:3px;width:var(--cw)}
+.slot{background:none;border:0;padding:0;cursor:pointer;border-radius:10px}
+.slot:disabled{cursor:default}
+.note{font-size:10px;color:var(--mute);min-height:13px;white-space:nowrap;text-align:center}
+.note b{color:var(--txt);margin-right:3px}
+
+/* カード共通 */
+.card{width:var(--cw);height:calc(var(--cw)*1.42);border-radius:calc(var(--cw)*.13);position:relative;flex:none;user-select:none;transition:transform .15s}
+.face{display:flex;align-items:center;justify-content:center}
+.face .n{font-size:calc(var(--cw)*.5);font-weight:700;line-height:1;letter-spacing:-.02em}
+/* 攻撃札：金色・角形。数字は中央だけ */
+.face.a{background:linear-gradient(160deg,#F1D9A0,#D6AF63);color:#2E2109;box-shadow:inset 0 0 0 1px rgba(46,33,9,.3),0 3px 7px rgba(0,0,0,.32)}
+.face.a.cpu{background:linear-gradient(160deg,#DBD6F5,#A9A4E6);color:#241C55;box-shadow:inset 0 0 0 1px rgba(36,28,85,.3),0 3px 7px rgba(0,0,0,.28)}
+.face.a.j{background:linear-gradient(160deg,#231637,#130B22);color:var(--gold);box-shadow:inset 0 0 0 1px rgba(217,178,106,.5),0 3px 7px rgba(0,0,0,.32)}
+.face.a.j.cpu{color:var(--cpu);box-shadow:inset 0 0 0 1px rgba(169,164,230,.5),0 3px 7px rgba(0,0,0,.32)}
+/* 守備札：灰青・盾形・平ら */
+.card.d{border-radius:calc(var(--cw)*.14) calc(var(--cw)*.14) 50% 50%/calc(var(--cw)*.14) calc(var(--cw)*.14) 34% 34%}
+.face.d{background:linear-gradient(160deg,#B7C2D5,#94A3BB);color:#0E1830;box-shadow:inset 0 0 0 1px rgba(14,24,48,.28),0 2px 5px rgba(0,0,0,.28)}
+.face.d .n{font-weight:700;margin-top:-8%}
+.face.d.j{background:linear-gradient(160deg,#231637,#130B22);color:#E9C46A;box-shadow:inset 0 0 0 1px rgba(233,196,106,.45),0 2px 5px rgba(0,0,0,.28)}
+.back{background:repeating-linear-gradient(45deg,var(--back1) 0 6px,var(--back2) 6px 12px);box-shadow:inset 0 0 0 calc(var(--cw)*.07) #0A1224,inset 0 0 0 calc(var(--cw)*.09) rgba(217,178,106,.8),0 2px 0 rgba(0,0,0,.4)}
+.card.opened::after{content:"";position:absolute;inset:0;border-radius:inherit;background:repeating-linear-gradient(135deg,transparent 0 7px,rgba(238,123,110,.3) 7px 9px);box-shadow:inset 0 0 0 2px var(--bad);pointer-events:none}
+.card.sel{transform:translateY(-8px)}
+.card.sel::before,.card.aimed::before{content:"";position:absolute;inset:-4px;border-radius:inherit;border:3px solid #fff;pointer-events:none}
+.card.aimed::before{border-color:var(--cpu)}
+.card.top::before{content:"";position:absolute;inset:-3px;border-radius:inherit;border:2px solid #fff;pointer-events:none}
+.card.dim{opacity:.3}
+/* スキルで入れ替えた札の目印（守備に入れた札／手札に戻した札） */
+.tg{position:absolute;top:-8px;right:-8px;width:21px;height:21px;border-radius:50%;font-size:11px;font-weight:900;line-height:1;display:flex;align-items:center;justify-content:center;z-index:2;pointer-events:none}
+.tg.d{background:var(--gold);color:#3A2600;box-shadow:0 0 0 1.5px #3A2600}
+.tg.a{background:#0A101D;color:var(--gold);box-shadow:0 0 0 1.5px var(--gold)}
+.bids{display:flex;align-items:center;justify-content:center;gap:3px;--cw:min(8.6vw,34px);flex-wrap:wrap}
+.bids .sep{color:var(--mute);font-weight:900;font-size:16px}
+.card.flip{animation:flip .5s ease-out}
+@keyframes flip{from{transform:rotateY(90deg)}to{transform:rotateY(0)}}
+
+/* 中央：攻撃札のレーンとボタン */
+.arena{flex:1;min-height:190px;border-radius:16px;background:rgba(0,0,0,.2);padding:8px 6px;display:flex;flex-direction:column;justify-content:space-between;gap:4px}
+.lane{min-height:calc(var(--cwd)*.95*1.42 + 14px);align-items:flex-start}
+.lc{width:var(--cw);display:flex;flex-direction:column;align-items:center;gap:3px}
+.lc .card{--cw:calc(var(--cwd)*.95)}
+.ar{width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent}
+.ar.up{border-bottom:8px solid var(--gold)}
+.ar.dn{border-top:8px solid var(--cpu)}
+.mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center}
+.msg{font-size:18px;font-weight:900}
+.msg.s{font-size:14px;font-weight:700;color:var(--mute)}
+.msg.win{color:var(--good)} .msg.lose{color:var(--bad)} .msg.draw{color:var(--gold)}
+.sub{font-size:13px;color:var(--mute);line-height:1.5}
+.inl{font-size:20px;font-weight:700}
+.inl b{font-size:26px;font-weight:900;margin:0 2px}
+.inl .w{color:var(--good)} .inl .l{color:var(--bad)}
+.acts{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.btn{min-height:46px;padding:0 20px;border-radius:12px;border:2px solid var(--gold);background:transparent;color:var(--gold);font-size:15px;font-weight:700;cursor:pointer}
+.btn.pri{background:var(--gold);color:var(--ink)}
+.btn:disabled{opacity:.35;cursor:default}
+.btn.sm{padding:0 13px;font-size:14px}
+
+/* 手札（攻撃札）は大きく */
+.hand{display:flex;justify-content:center;gap:3px;--cw:var(--cwa);padding-top:8px;min-height:calc(var(--cwa)*1.42 + 14px)}
+.hand .none{align-self:center;font-size:12px;color:var(--mute)}
+
+.setup{display:flex;flex-direction:column;gap:14px;flex:1}
+.setup p{margin:0;font-size:14px;line-height:1.6;color:var(--mute)}
+.setup p .hl{color:var(--gold);font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px 8px;justify-items:center;--cw:min(19vw,76px)}
+.prev{--cw:min(11.5vw,46px);gap:6px;align-items:flex-end}
+.pslot{width:var(--cw);height:calc(var(--cw)*1.42);border-radius:calc(var(--cw)*.13);border:1.5px dashed rgba(255,255,255,.3)}
+.mv{display:flex;justify-content:center;gap:10px}
+.mv .ghost{min-height:38px}
+.setup .btn{align-self:center;min-width:220px}
+
+.modal{position:fixed;inset:0;background:rgba(6,18,22,.8);display:flex;align-items:center;justify-content:center;padding:18px;z-index:10}
+.panel{background:var(--felt2);border-radius:18px;padding:18px;max-width:460px;max-height:86dvh;overflow:auto;font-size:14px;line-height:1.7}
+.panel h2{margin:0 0 8px;font-size:17px}
+.panel ul{margin:0 0 12px;padding-left:1.2em}
+.panel li{margin-bottom:4px}
+.panel .btn{display:block;margin:6px auto 0}
+
+.title{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:6px 0 18px;text-align:center}
+.cardlogo{position:relative;width:min(50vw,206px);aspect-ratio:1/1.4;border-radius:12px;background:linear-gradient(160deg,#141F38,#0A1120);box-shadow:0 14px 44px rgba(0,0,0,.55),0 0 0 1px rgba(217,178,106,.18);display:flex;align-items:center;justify-content:center}
+.cardlogo.in{animation:logoin .9s ease-out both}
+.cardlogo::before{content:"";position:absolute;inset:7%;border:2px solid var(--gold);border-radius:8px;opacity:.9}
+.cardlogo .logo{width:62%;height:auto;color:var(--gold)}
+@keyframes logoin{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.brand .bn{font-family:var(--serif);font-weight:700;font-size:22px;letter-spacing:.16em;padding-left:.16em;color:var(--gold)}
+.lvl{display:flex;flex-direction:column;align-items:center;gap:6px}
+.segs{display:flex;border:1.5px solid var(--gold);border-radius:12px;overflow:hidden}
+.seg{min-height:42px;min-width:78px;padding:0 14px;background:transparent;border:0;color:var(--gold);font-size:14px;font-weight:700;cursor:pointer}
+.seg+.seg{border-left:1.5px solid var(--gold)}
+.seg.on{background:var(--gold);color:var(--ink)}
+.title .btn.big{min-width:230px;min-height:54px;font-size:18px;letter-spacing:.3em;padding-left:calc(20px + .3em)}
+.ver{font-size:11px;color:var(--mute)}
+
+@media (prefers-reduced-motion:reduce){.card,.card.flip,.cardlogo{transition:none;animation:none}}
