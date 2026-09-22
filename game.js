@@ -139,7 +139,7 @@ function titleView(){
     <div class="lvl"><div class="cap">CPUの強さ</div><div class="segs">${segs}</div></div>
     <button class="btn pri big" data-act="play">プレイ</button>
     <button class="ghost" data-act="rules">ルール</button>
-    <div class="ver">ver.5</div>
+    <div class="ver">ver.1.0</div>
   </div>`;
 }
 
@@ -157,7 +157,8 @@ function setupView(){
   const hasJ=S.sel.includes('J');
   const jIdx=arr.indexOf('J');
   const slots=[0,1,2,3,4].map(i=>arr[i]!==undefined?`<div>${face(arr[i],'d')}</div>`:'<div class="pslot"></div>').join('');
-  const mv=hasJ&&S.sel.length>1?`<div class="mv"><button class="ghost" data-act="jleft" ${jIdx<=0?'disabled':''}>ジョーカーを左へ</button><button class="ghost" data-act="jright" ${jIdx>=arr.length-1?'disabled':''}>ジョーカーを右へ</button></div>`:'';
+  const canMove=hasJ&&S.sel.length>1;
+  const mv=`<div class="mv"><button class="ghost" data-act="jleft" ${(!canMove||jIdx<=0)?'disabled':''}>ジョーカーを左へ</button><button class="ghost" data-act="jright" ${(!canMove||jIdx>=arr.length-1)?'disabled':''}>ジョーカーを右へ</button></div>`;
   return `${header()}
   <div class="setup">
     <p>守備に伏せる5枚を選ぶ。並びは自動で左が弱く右が強い順になる。<b class="hl">ジョーカーは位置を選べる。</b>選ばなかった札は攻撃札となる。</p>
