@@ -79,7 +79,7 @@ const lv=()=>LEVELS[LEVEL];
 function side(){return {hand:[],def:[],skill:false,used:[],swBack:null};}
 function newGame(phase){
   return {phase:phase||'setup',sel:[],jpos:4,p:side(),c:side(),turn:null,first:null,
-    notes:fresh(),cfails:fresh(),pSkill:null,psig:[],caution:1,patience:0,plan:null,msg:'',showRules:false,
+    notes:fresh(),pNotes:fresh(),cfails:fresh(),pSkill:null,psig:[],caution:1,patience:0,plan:null,msg:'',showRules:false,
     selCard:null,selSlot:null,swHand:null,swDef:null,decl:null,auc:null,aucSel:null,result:null,final:null,revealAll:false,anim:null};
 }
 let S=newGame('title');
@@ -186,8 +186,8 @@ function cpuRow(){
     const cls=[d.open?'opened':'',S.anim&&S.anim.side==='c'&&S.anim.slot===i?'flip':'',selMode&&!d.open&&S.selSlot===i?'sel':''].join(' ');
     const inner=show?face(d.v,'d',cls):backCard(cls);
     const ok=selMode&&!d.open;
-    const notes=S.notes[i].map(v=>'×'+lab(v)).join(' ');
-    return `<div class="slotwrap"><button class="slot" ${ok?`data-act="cslot" data-i="${i}"`:'disabled'} aria-label="CPUの守備 ${5-i}">${inner}</button><div class="note"><b>${5-i}</b>${notes}</div></div>`;
+    const hist=d.open?`<span class="brk">〇${lab(d.brokenBy)}</span>`:S.notes[i].map(v=>'×'+lab(v)).join(' ');
+    return `<div class="slotwrap"><button class="slot" ${ok?`data-act="cslot" data-i="${i}"`:'disabled'} aria-label="CPUの守備 ${5-i}">${inner}</button><div class="note"><b>${5-i}</b>${hist}</div></div>`;
   }).join('');
 }
 
@@ -213,7 +213,8 @@ function pRow(){
     const aimed=inc&&inc.slot===i;
     const cls=[d.open?'opened':'',S.anim&&S.anim.side==='p'&&S.anim.slot===i?'flip':'',skillMode&&S.swDef===i?'sel':'',aimed?'aimed':''].join(' ');
     const ok=skillMode&&!d.open;
-    return `<div class="slotwrap"><button class="slot" ${ok?`data-act="pslot" data-i="${i}"`:'disabled'} aria-label="あなたの守備 ${i+1}${d.sw?'（スキルで入れ替えた札）':''}">${face(d.v,'d',cls,!!d.sw)}</button><div class="note"><b>${i+1}</b></div></div>`;
+    const hist=d.open?`<span class="brk">〇${lab(d.brokenBy)}</span>`:S.pNotes[i].map(v=>'×'+lab(v)).join(' ');
+    return `<div class="slotwrap"><div class="note">${hist}</div><button class="slot" ${ok?`data-act="pslot" data-i="${i}"`:'disabled'} aria-label="あなたの守備 ${i+1}${d.sw?'（スキルで入れ替えた札）':''}">${face(d.v,'d',cls,!!d.sw)}</button><div class="note"><b>${i+1}</b></div></div>`;
   }).join('');
 }
 
@@ -290,7 +291,7 @@ function gameView(){
   const showBot=!!incoming();
   return `${header()}
   <section class="zone">
-    <div class="zinfo"><span class="dot cpu"></span><b>CPU</b><span>攻撃札 ${c.hand.length}枚</span><span>スキル ${c.skill?'済':'未'}</span><span class="pt">失点 ${sumOpen(c)}</span></div>
+    <div class="zinfo"><span class="dot cpu"></span><b>CPU（${lv().name}）</b><span>攻撃札 ${c.hand.length}枚</span><span>スキル ${c.skill?'済':'未'}</span><span class="pt">失点 ${sumOpen(c)}（${cntOpen(c)}枚）</span></div>
     ${tracker(c)}
     <div class="dwrap"><span class="end l">強</span><div class="row dfn">${cpuRow()}</div><span class="end r">弱</span></div>
   </section>
@@ -302,7 +303,7 @@ function gameView(){
   <section class="zone">
     <div class="row dfn">${pRow()}</div>
     <div class="hand">${handRow()}</div>
-    <div class="zinfo"><span class="dot me"></span><b>あなた</b><span>スキル ${p.skill?'済':'未'}</span><span class="pt">失点 ${sumOpen(p)}</span></div>
+    <div class="zinfo"><span class="dot me"></span><b>あなた</b><span>スキル ${p.skill?'済':'未'}</span><span class="pt">失点 ${sumOpen(p)}（${cntOpen(p)}枚）</span></div>
     ${tracker(p)}
   </section>`;
 }
@@ -358,10 +359,12 @@ function resolve(att,card,slot,forced,chain){
   A.hand.splice(A.hand.indexOf(card),1);
   A.used.push(card);
   const dv=D.def[slot].v, win=forced!==undefined?forced:beats(card,dv);
-  if(win) D.def[slot].open=true;
-  else if(forced===undefined){ // オークションで守った時は、守備札の強さの手がかりにならない
+  if(win){
+    D.def[slot].open=true;
+    D.def[slot].brokenBy=chain?chain[chain.length-1].card:card; // 何で突破されたか（オークションなら最後に勝った札）
+  }else if(forced===undefined){ // オークションで守った時は、守備札の強さの手がかりにならない
     if(att==='p') S.notes[slot].push(card);
-    else S.cfails[slot].push({a:card,pre:!S.p.skill}); // pre＝あなたがスキルを使う前に負けた攻撃（入れ替え前の札への手がかり）
+    else{ S.cfails[slot].push({a:card,pre:!S.p.skill}); S.pNotes[slot].push(card); } // pre＝あなたがスキルを使う前に負けた攻撃（入れ替え前の札への手がかり）
   }
   let end=null,next=null;
   if(D.def.every(d=>d.open)) end={type:'all',loser:other};
@@ -854,6 +857,7 @@ document.addEventListener('click',e=>{
       doSwap(S.p,S.swHand,S.swDef);
       S.pSkill=from==='p_skill_atk'?{kind:'atk'}:{kind:'def',slot:S.decl.slot,card:S.decl.card};
       if(!lv().smart) S.cfails=fresh(); // 強いCPUは、入れ替え前の記録も「入れ替え前の札の手がかり」として残す
+      S.pNotes=fresh(); // 表示用の履歴は、入れ替えたら常にリセット
       S.swHand=null;S.swDef=null;
       if(from==='p_skill_atk'){
         S.phase='p_attack';S.selCard=null;S.selSlot=null;S.msg='';render();
