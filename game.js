@@ -398,6 +398,14 @@ function finish(end){
 const valuable=v=>v==='J'||v===1||v>=10;
 // 手札に置いておく価値（守備札に回す時は、価値が低い札から出す）
 const keepKey=h=>h==='J'?100:(h===1?50:h);
+// 相手がスキルで守備に入れ替えて隠した札を予測：J・1・大きい数字は温存したいので選ばれにくく、小さい数字ほど「捨てても惜しくない」ので選ばれやすいと仮定する
+function weightedGuess(cands){
+  const w=cands.map(v=>v==='J'?0.15:(v===1?0.3:1/(v+1)));
+  const tot=w.reduce((a,b)=>a+b,0);
+  let r=Math.random()*tot;
+  for(let k=0;k<cands.length;k++){r-=w[k];if(r<=0)return cands[k];}
+  return cands[cands.length-1];
+}
 // 攻撃札が噛み合わない時、守備札に伏せてる強い札・テクニカルな札を手札に回収する
 function cpuRecover(bestP){
   const c=S.c;
@@ -539,34 +547,27 @@ function cpuHypsSmart(useFails=true){
     }
     return capHyps(hyps);
   }
-  // スキル後：捲られた札同士の並びが崩れていたら、その捲られた札の場所が入れ替え先
-  const openSeq=open.map(i=>openVals[i]);
-  let wild=[null];
-  if(!orderOK(openSeq)){
-    const ws=open.filter(w=>orderOK(open.filter(i=>i!==w).map(i=>openVals[i])));
-    if(ws.length) wild=ws;
-  }
-  const sk=S.pSkill;
-  for(const w of wild){
-    const slots=w===null?hidden:hidden.concat([w]).sort((a,b)=>a-b);
-    const ov=openVals.slice();if(w!==null) ov[w]=null;
-    const Os=enumOrdered(slots,ov,pool);
-    if(!Os.length||!hidden.length) continue;
+  // スキル後：どのマスを入れ替えたかは、手元の動作としてこちらから見えている（値までは見えない）ので、j はもう推測ではなく確定できる
+  const sk=S.pSkill; // 必ず存在（スキル使用時に必ず記録される）
+  const j=sk.slot;
+  const jHidden=hidden.includes(j);
+  const slots=jHidden?hidden:hidden.concat([j]).sort((a,b)=>a-b);
+  const ov=openVals.slice();if(!jHidden) ov[j]=null;
+  const Os=enumOrdered(slots,ov,pool);
+  if(Os.length&&hidden.length){
     let got=0;
     for(let t=0;t<7000&&got<1500;t++){
       const O=Os[rnd(Os.length)];
-      const j=w!==null?w:hidden[rnd(hidden.length)];
-      const x=O[slots.indexOf(j)];
+      const x=O[slots.indexOf(j)]; // 入れ替え前にそこにあった値（推定）
       let h;
-      if(w!==null) h=openVals[w];
-      else{const cand=pool.filter(v=>!O.includes(v));if(!cand.length) continue;h=cand[rnd(cand.length)];}
+      if(!jHidden) h=openVals[j]; // 入れ替え後にそこが捲られていれば、入れ替え後の値はもう既知
+      else{const cand=pool.filter(v=>!O.includes(v));if(!cand.length) continue;h=weightedGuess(cand);} // 隠れたままなら、「捨てても惜しくない札」ほど選ばれやすいと仮定して予測
       const F=openVals.slice();slots.forEach((s,q)=>{F[s]=O[q];});F[j]=h;
       if(useFails&&!failsOK(F,j,x,h)) continue;
       let wt=sigW(F);
-      if(sk&&sk.kind==='def'){
-        const s=sk.slot,a=sk.card;
-        if(j===s) wt*=4*(beats(a,x)?1:0.05)*(!beats(a,h)?1:0.05);
-        else wt*=0.5*(beats(a,F[s])?1:0.2);
+      if(sk.kind==='def'){
+        const a=sk.card;
+        wt*=4*(beats(a,x)?1:0.05)*(!beats(a,h)?1:0.05);
       }
       if(valuable(x)) wt*=2;
       hyps.push({F,H:pool.filter(v=>!F.includes(v)),w:wt});got++;
@@ -855,7 +856,7 @@ document.addEventListener('click',e=>{
       if(S.swHand==null||S.swDef==null)break;
       const from=S.phase;
       doSwap(S.p,S.swHand,S.swDef);
-      S.pSkill=from==='p_skill_atk'?{kind:'atk'}:{kind:'def',slot:S.decl.slot,card:S.decl.card};
+      S.pSkill=from==='p_skill_atk'?{kind:'atk',slot:S.swDef}:{kind:'def',slot:S.decl.slot,card:S.decl.card};
       if(!lv().smart) S.cfails=fresh(); // 強いCPUは、入れ替え前の記録も「入れ替え前の札の手がかり」として残す
       S.pNotes=fresh(); // 表示用の履歴は、入れ替えたら常にリセット
       S.swHand=null;S.swDef=null;
