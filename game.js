@@ -246,7 +246,7 @@ function aucChain(){return [{card:S.auc.card,by:S.auc.att}].concat(S.auc.bids);}
 
 function incomingLine(){
   const d=S.decl,dv=S.p.def[d.slot].v,defWin=!beats(d.card,dv);
-  return `<div class="inl"><b>${lab(d.card)}</b>で<b>${d.slot+1}</b>に攻撃<span class="${defWin?'w':'l'}">（${defWin?'勝ち':'負け'}）</span></div>`;
+  return `<div class="inl"><b>${lab(d.card)}</b>で<b>${lab(dv)}</b>に攻撃<span class="${defWin?'w':'l'}">（${defWin?'勝ち':'負け'}）</span></div>`;
 }
 
 function mid(){
