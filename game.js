@@ -111,7 +111,7 @@ function face(v,kind='a',extra='',tag=false){
   const j=v==='J';
   return `<div class="card face ${kind} ${j?'j':''} ${extra}"><span class="n">${j?'J':v}</span>${tag?`<span class="tg ${kind}">替</span>`:''}</div>`;
 }
-function backCard(extra=''){return `<div class="card back d ${extra}"></div>`;}
+function backCard(extra='',tag=false){return `<div class="card back d ${extra}">${tag?'<span class="tg d">替</span>':''}</div>`;}
 
 // ロゴ：カードの裏のモノグラム（H・T・Jを組み合わせた形）
 function logoSvg(){
@@ -184,9 +184,9 @@ function cpuRow(){
     const d=S.c.def[i];
     const show=d.open||S.revealAll;
     const cls=[d.open?'opened':'',S.anim&&S.anim.side==='c'&&S.anim.slot===i?'flip':'',selMode&&!d.open&&S.selSlot===i?'sel':''].join(' ');
-    const inner=show?face(d.v,'d',cls):backCard(cls);
+    const inner=show?face(d.v,'d',cls):backCard(cls,!!d.sw);
     const ok=selMode&&!d.open;
-    const hist=d.open?`<span class="brk">〇${lab(d.brokenBy)}</span>`:S.notes[i].map(v=>'×'+lab(v)).join(' ');
+    const hist=d.open?`<span class="brk">〇${lab(d.brokenBy)}</span>`:S.notes[i].map(e=>`<span class="${e.post?'cur':''}">×${lab(e.v)}</span>`).join(' ');
     return `<div class="slotwrap"><button class="slot" ${ok?`data-act="cslot" data-i="${i}"`:'disabled'} aria-label="CPUの守備 ${5-i}">${inner}</button><div class="note"><b>${5-i}</b>${hist}</div></div>`;
   }).join('');
 }
@@ -213,7 +213,7 @@ function pRow(){
     const aimed=inc&&inc.slot===i;
     const cls=[d.open?'opened':'',S.anim&&S.anim.side==='p'&&S.anim.slot===i?'flip':'',skillMode&&S.swDef===i?'sel':'',aimed?'aimed':''].join(' ');
     const ok=skillMode&&!d.open;
-    const hist=d.open?`<span class="brk">〇${lab(d.brokenBy)}</span>`:S.pNotes[i].map(v=>'×'+lab(v)).join(' ');
+    const hist=d.open?`<span class="brk">〇${lab(d.brokenBy)}</span>`:S.pNotes[i].map(e=>`<span class="${e.post?'cur':''}">×${lab(e.v)}</span>`).join(' ');
     return `<div class="slotwrap"><div class="note">${hist}</div><button class="slot" ${ok?`data-act="pslot" data-i="${i}"`:'disabled'} aria-label="あなたの守備 ${i+1}${d.sw?'（スキルで入れ替えた札）':''}">${face(d.v,'d',cls,!!d.sw)}</button><div class="note"><b>${i+1}</b></div></div>`;
   }).join('');
 }
@@ -363,8 +363,9 @@ function resolve(att,card,slot,forced,chain){
     D.def[slot].open=true;
     D.def[slot].brokenBy=chain?chain[chain.length-1].card:card; // 何で突破されたか（オークションなら最後に勝った札）
   }else if(forced===undefined){ // オークションで守った時は、守備札の強さの手がかりにならない
-    if(att==='p') S.notes[slot].push(card);
-    else{ S.cfails[slot].push({a:card,pre:!S.p.skill}); S.pNotes[slot].push(card); } // pre＝あなたがスキルを使う前に負けた攻撃（入れ替え前の札への手がかり）
+    // post＝この失敗が、そのマスのスキル入れ替え「後」に起きたか（色分け表示用。交換しても履歴は消さず、交換前後がわかるようにする）
+    if(att==='p') S.notes[slot].push({v:card,post:!!D.def[slot].sw});
+    else{ S.cfails[slot].push({a:card,pre:!S.p.skill}); S.pNotes[slot].push({v:card,post:!!D.def[slot].sw}); } // pre＝あなたがスキルを使う前に負けた攻撃（入れ替え前の札への手がかり）
   }
   let end=null,next=null;
   if(D.def.every(d=>d.open)) end={type:'all',loser:other};
@@ -764,7 +765,6 @@ function cpuTurn(){
   setTimeout(()=>{
     if(S!==snap) return;
     if(cpuPlanMove()||cpuRecover(cpuPick().p)){
-      S.notes=fresh();
       S.msg='CPUがスキルを使った';render();
       setTimeout(()=>{if(S!==snap)return;cDeclare();},1100);
     }else cDeclare();
@@ -858,7 +858,6 @@ document.addEventListener('click',e=>{
       doSwap(S.p,S.swHand,S.swDef);
       S.pSkill=from==='p_skill_atk'?{kind:'atk',slot:S.swDef}:{kind:'def',slot:S.decl.slot,card:S.decl.card};
       if(!lv().smart) S.cfails=fresh(); // 強いCPUは、入れ替え前の記録も「入れ替え前の札の手がかり」として残す
-      S.pNotes=fresh(); // 表示用の履歴は、入れ替えたら常にリセット
       S.swHand=null;S.swDef=null;
       if(from==='p_skill_atk'){
         S.phase='p_attack';S.selCard=null;S.selSlot=null;S.msg='';render();
@@ -872,7 +871,7 @@ document.addEventListener('click',e=>{
       if(S.phase!=='p_attack'||S.selCard==null||S.selSlot==null)break;
       const card=S.selCard,slot=S.selSlot;
       if(cpuDefend(card,slot)){
-        S.notes=fresh();S.selCard=null;S.selSlot=null;
+        S.selCard=null;S.selSlot=null;
         S.msg='CPUがスキルを使った（攻撃は中断）';render();
       }else if(cpuAuctionDefense(card,slot)){
         S.selCard=null;S.selSlot=null;afterCpuBid();

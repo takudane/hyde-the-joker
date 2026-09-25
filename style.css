@@ -52,6 +52,7 @@ h1 .logo{width:19px;height:auto;flex:none}
 .note{font-size:10px;color:var(--mute);min-height:13px;white-space:nowrap;text-align:center}
 .note b{color:var(--txt);margin-right:3px}
 .note .brk{color:var(--bad);font-weight:700}
+.note .cur{color:var(--txt);font-weight:700}
 
 /* カード共通 */
 .card{width:var(--cw);height:calc(var(--cw)*1.42);border-radius:calc(var(--cw)*.13);position:relative;flex:none;user-select:none;transition:transform .15s}
